@@ -1,18 +1,13 @@
-##![Smart Cambridge logo](images/smart_cambridge_logo.jpg) RITA: Realtime Intelligent Traffic Analysis
-
-# Part of the Smart Cambridge programme.
-
-*This is a work-in-progress, not all features below are complete, see Summary of system modules below and the
-[TODO](TODO.md) list*
+# Adaptive City Program Real-Time Server
 
 ## Overview
 
-This system, written in Java / [Vertx](https://vertx.io) is designed to receive 'real-time' vehicle
-position feeds, do analysis on those position updates in real-time, and provide both web-based information
-pages and also send messages based on user subscriptions. The system is intended to accomodate other 'sensor'
-data as that becomes available.
+This system, written in Java / [Vertx](https://vertx.io) is designed to receive 'real-time' sensor data
+such as detailed in-building energy use or regional vehicle position feeds. The platform supports
+analysis on these updates in real-time, and provides both web-based information
+pages and also sends messages to other systems based on user subscriptions.
 
-![Intelligent City Platform Overview](images/rita_platform_overview.png)
+![Platform Overview](images/rita_platform_overview.png)
 
 In terms of system design, the platform is notable mainly in that:
 - An asynchronous message-passing paradigm is at the core of the platform, i.e.
@@ -20,7 +15,7 @@ vehicle position data is received by the FeedHandler module in real-time, format
 and published in the system. Other modules will receive and process those messages, themselved publishing
 derived messages such as a zone becoming congested.
 - The [Vertx](https://vertx.io) library is used to provide a non-blocking framework for the server-side
-Java code, with the RITA modules themselves designed to operate asynchronously and be non-blocking.
+Java code, with the modules themselves designed to operate asynchronously and be non-blocking.
 - Each module in the system (e.g. FeedHandler, FeedPlayer, Zone, Route, Vehicle) is designed to be an
 independent agent or [actor](http://www.brianstorti.com/the-actor-model/), and the system design
 supports configurations of arbitrary numbers of feeds, zones, users etc.
@@ -44,12 +39,12 @@ broadcast that realtime data via the EventBus, a Zone module can subscribe to th
 own status update messages such as congestion alerts, and broadcast its own messages back onto the EventBus for other
 modules to receive.
 
-![Basic Rita Architecture](images/basic_rita_architecture.png)
+![Basic ACP Architecture](images/basic_rita_architecture.png)
 
 So Rita is *modular* and there is no particular limit on the number of modules that can be concurrently supported. A production
 implementation is expected to have hundreds of zones and routes being monitored simultaneously.
 
-![Rita System Structure](images/rita_system_structure.png)
+![ACP System Structure](images/rita_system_structure.png)
 
 The use of Vertx and the clustered EventBus allows Rita modules to be run in multiple instances on a single server, and
 also across multiple distributed servers. This also allows the realtime data to be archived simultaneously in multiple locations.
@@ -60,7 +55,7 @@ that have no interest in the actual type of realtime data received (e.g. the Fee
 (on the right) those that interpret the data and produce derived analytics (i.e. particularly the Zone which interprets
 the feed as vehicle position data and produces new messages indicating current zone transit times).
 
-![General vs traffic-data specific aspects of the Rita platform](images/rita_general.png)
+![General vs traffic-data specific aspects of the platform](images/rita_general.png)
 
 ## Summary of system modules
 *For more detail see the readme in each module directory*
@@ -187,35 +182,4 @@ A BatcherWorker configured to process a day's worth of vehicle position data wil
 processing the same set of Cambridge region Zones)
 acheive a processing speed up of approximately 7500x over the original real-time data rate.
 
-### Route *(planned)*
-
-It is intended that Route modules will act as 'agents' on behalf of each bus route, e.g. the Citi-4
-agent will subscribe to FeedHandler messages for vehicles on the Citi-4 route, and Zone messages
-relevant to the Citi-4 route, to provide status and messages pertaining to the Citi-4 route (such
-as likely delays and predicted journey times.
-
-### Vehicle *(planned)*
-
-It is possible we should have an agent-per-vehicle, i.e. a module that subscribes to the FeedPlayer or
-FeedComposer that only has an interest in a given vehicle, and maintains status and generates messages
-relevant to that vehicle. Not sure...
-
-### Stop *(planned)*
-
-It is possible we should have an agent-per-bus-stop, listening to appropriate messages and updating the
-status of that stop and its timetable.
-
-### Rita (see [Rita README](src/main/java/uk/ac/cam/tfc_server/rita))
-
-Note that the 'user interface' to the Intelligent City Platform is primarily provided by
-[tfc_web](https://github.com/ijl20/tfc_web).  Rita enables some web access in part to test functionality
-before it is implemented in tfc_web.
-
-Rita is the Vertx module providing the agent that acts on behalf of the general web *user*, e.g. it can
-subscribe to the FeedHandler and show the position of vehicles on a map, or can display the
-status of selected zones by subscribing to those messages.
-
-Rita can equally provide most end-user functions using re-played data from the archive (i.e. using
-a FeedPlayer) such that users can study exactly what did happen when a significant traffic
-issue occurred.
 
