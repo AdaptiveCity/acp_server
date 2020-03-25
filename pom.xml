@@ -1,11 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>uk.ac.cam.tfc_server</groupId>
-    <artifactId>tfc_server</artifactId>
+    <groupId>acp_server</groupId>
+    <artifactId>acp_server</artifactId>
     <packaging>jar</packaging>
     <version>3.6.3</version>
-    <name>tfc_server</name>
+    <name>acp_server</name>
     <url>http://maven.apache.org</url>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -34,11 +34,6 @@
           <artifactId>vertx-web-client</artifactId>
           <version>${project.version}</version>
       </dependency>
-      <dependency>
-          <groupId>com.google.transit</groupId>
-          <artifactId>gtfs-realtime-bindings</artifactId>
-          <version>0.0.4</version>
-      </dependency>    
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-service-factory</artifactId>
@@ -100,7 +95,7 @@
               <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                 <manifestEntries>
                   <Main-Class>io.vertx.core.Launcher</Main-Class>
-                  <Main-Verticle>uk.ac.cam.tfc_server.rita.Rita</Main-Verticle>
+                  <Main-Verticle>acp_server.console.Console</Main-Verticle>
                 </manifestEntries>
               </transformer>
               <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">

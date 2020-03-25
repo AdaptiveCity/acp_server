@@ -1,0 +1,51 @@
+                                                                                
+{
+    "main":    "uk.ac.cam.tfc_server.msgfiler.MsgFiler",
+    "options":
+        { "config":
+          {
+
+            "module.name":           "msgfiler",
+            "module.id":             "feedmqtt.ttn",
+
+            "eb.system_status":      "tfc.system_status",
+            "eb.console_out":        "tfc.console_out",
+            "eb.manager":            "tfc.manager",
+
+            "msgfiler.address": "tfc.msgfiler.feedmqtt.ttn",
+
+            "msgfiler.filers":
+            [
+                { "source_address": "tfc.feedmqtt.ttn",
+                  "source_filter": { "field": "msg_type",
+                                     "compare": "=",
+                                     "value": "feed_mqtt"
+                                   },
+                  "store_path": "/media/tfc/{{feed_id}}/data_bin_json/{{filepath}}",
+                  "store_name": "{{filename}}.json",
+                  "store_mode": "write"
+                },
+                { "source_address": "tfc.feedmqtt.ttn",
+                  "source_filter": { "field": "msg_type",
+                                     "compare": "=",
+                                     "value": "feed_mqtt"
+                                   },
+                  "store_path": "/media/tfc/{{feed_id}}/data_monitor_json",
+                  "store_name": "post_data.json",
+                  "store_mode": "write"
+                },
+		{ "source_address": "tfc.feedmqtt.ttn",
+                  "source_filter": { "field": "msg_type",
+                                     "compare": "=",
+                                     "value": "feed_mqtt"
+                                   },
+                  "flatten":    "request_data",
+                  "store_path": "/media/tfc/{{feed_id}}/{{dev_id}}/{{ts|yyyy}}/{{ts|MM}}",
+                  "store_name": "{{dev_id}}_{{ts|yyyy}}-{{ts|MM}}-{{ts|dd}}.txt",
+                  "store_mode": "append"
+                }
+            ]
+              
+          }
+        }
+}
