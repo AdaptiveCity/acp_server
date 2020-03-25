@@ -1,6 +1,6 @@
                                                                                 
 {
-    "main":    "uk.ac.cam.tfc_server.msgfiler.MsgFiler",
+    "main":    "acp_server.msgfiler.MsgFiler",
     "options":
         { "config":
           {
@@ -8,39 +8,39 @@
             "module.name":           "msgfiler",
             "module.id":             "feedmqtt.local",
 
-            "eb.system_status":      "tfc.system_status",
-            "eb.console_out":        "tfc.console_out",
-            "eb.manager":            "tfc.manager",
+            "eb.system_status":      "acp.system_status",
+            "eb.console_out":        "acp.console_out",
+            "eb.manager":            "acp.manager",
 
-            "msgfiler.address": "tfc.msgfiler.feedmqtt.local",
+            "msgfiler.address": "acp.msgfiler.feedmqtt.local",
 
             "msgfiler.filers":
             [
-                { "source_address": "tfc.feedmqtt.local",
+                { "source_address": "acp.feedmqtt.local",
                   "source_filter": { "field": "msg_type",
                                      "compare": "=",
                                      "value": "feed_mqtt"
                                    },
-                  "store_path": "/media/tfc/{{feed_id}}/data_bin_json/{{filepath}}",
+                  "store_path": "/media/acp/{{feed_id}}/data_bin_json/{{filepath}}",
                   "store_name": "{{filename}}.json",
                   "store_mode": "write"
                 },
-                { "source_address": "tfc.feedmqtt.local",
+                { "source_address": "acp.feedmqtt.local",
                   "source_filter": { "field": "msg_type",
                                      "compare": "=",
                                      "value": "feed_mqtt"
                                    },
-                  "store_path": "/media/tfc/{{feed_id}}/data_monitor_json",
+                  "store_path": "/media/acp/{{feed_id}}/data_monitor_json",
                   "store_name": "post_data.json",
                   "store_mode": "write"
                 },
-                { "source_address": "tfc.feedmqtt.local",
+                { "source_address": "acp.feedmqtt.local",
                   "source_filter": { "field": "msg_type",
                                      "compare": "=",
                                      "value": "feed_mqtt"
                                    },
                   "flatten":    "request_data",
-                  "store_path": "/media/tfc/{{feed_id}}/{{dev_id}}/{{ts|yyyy}}/{{ts|MM}}",
+                  "store_path": "/media/acp/{{feed_id}}/{{dev_id}}/{{ts|yyyy}}/{{ts|MM}}",
                   "store_name": "{{dev_id}}_{{ts|yyyy}}-{{ts|MM}}-{{ts|dd}}.txt",
                   "store_mode": "append"
                 }
