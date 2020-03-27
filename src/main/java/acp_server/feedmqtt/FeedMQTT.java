@@ -53,7 +53,7 @@ import acp_server.util.Constants;
 
 public class FeedMQTT extends AbstractVerticle {
 
-    private final String VERSION = "0.03";
+    private final String VERSION = "0.04";
     
     // from config()
     private String MODULE_NAME;       // config module.name - normally "feedscraper"
@@ -262,6 +262,8 @@ public class FeedMQTT extends AbstractVerticle {
         // The actual MQTT data will be the single element of the eventbus message "request_data" property
         JsonObject mqtt_data = new JsonObject(buf);
 
+        mqtt_data.put("mqtt_topic", mqtt_msg.topicName());
+
         JsonArray request_data = new JsonArray();
 
         request_data.add(mqtt_data);
@@ -273,7 +275,7 @@ public class FeedMQTT extends AbstractVerticle {
         msg.put("feed_id", config.getString("feed_id"));
         msg.put("filename", filename);
         msg.put("filepath", filepath);
-        msg.put("ts", utc_seconds);
+        msg.put("acp_ts", utc_ts);
 
         msg.put("msg_type", config.getString("msg_type"));
   

@@ -4,7 +4,7 @@
     <groupId>acp_server</groupId>
     <artifactId>acp_server</artifactId>
     <packaging>jar</packaging>
-    <version>3.6.3</version>
+    <version>3.8.5</version>
     <name>acp_server</name>
     <url>http://maven.apache.org</url>
     <properties>
