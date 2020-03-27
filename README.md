@@ -7,6 +7,8 @@ such as detailed in-building energy use or regional vehicle position feeds. The 
 analysis on these updates in real-time, and provides both web-based information
 pages and also sends messages to other systems based on user subscriptions.
 
+In the archicture image below, the *black* lines represent real-time data flows. The red lines are the traditional request-response transfers.
+
 ![Platform Overview](images/ACP_Architecture.png)
 
 In terms of system design, the platform is notable mainly in that:
