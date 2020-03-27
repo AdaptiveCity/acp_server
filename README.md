@@ -7,7 +7,7 @@ such as detailed in-building energy use or regional vehicle position feeds. The 
 analysis on these updates in real-time, and provides both web-based information
 pages and also sends messages to other systems based on user subscriptions.
 
-![Platform Overview](images/rita_platform_overview.png)
+![Platform Overview](images/ACP_Architecture.png)
 
 In terms of system design, the platform is notable mainly in that:
 - An asynchronous message-passing paradigm is at the core of the platform, i.e.
