@@ -4,10 +4,10 @@ package acp_server.msgfiler;
 // *************************************************************************************************
 // *************************************************************************************************
 // MsgFiler.java
-// Version 0.03
+// Version 0.04
 // Author: Ian Lewis ijl20@cam.ac.uk
 //
-// Forms part of the 'tfc_server' next-generation Realtime Intelligent Traffic Analysis system
+// Forms part of the 'acp_server' next-generation Adaptive City Platform
 //
 // MsgFiler is dedicated to reading messages from the eventbus and
 // storing them in the filesystem.
@@ -201,4 +201,4 @@ public class MsgFiler extends AbstractVerticle {
         return true;
     } // end get_config()
 
-} // end class FeedCSV
+} // end class MsgFiler

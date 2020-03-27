@@ -4,10 +4,10 @@ package acp_server.msgfiler;
 // *************************************************************************************************
 // *************************************************************************************************
 // FilerUtils.java
-// Version 0.12
+// Version 0.13
 // Author: Ian Lewis ijl20@cam.ac.uk
 //
-// Forms part of the 'tfc_server' next-generation Realtime Intelligent Traffic Analysis system
+// Forms part of the 'acp_server' next-generation Adaptive City Platform
 //
 // FilerUtils provides the data storage procedures for MsgFiler and BatcherWorker
 //
@@ -374,7 +374,24 @@ public class FilerUtils {
         }
         catch (java.lang.ClassCastException e)
         {
-            return Instant.parse(msg.getString(field_name));
+            try
+            {
+                String ts_string = msg.getString(field_name);
+
+                try
+                {
+                    double ts_double = Double.parseDouble(ts_string);
+                    return Instant.ofEpochSecond((long)ts_double);
+                }
+                catch (java.lang.NumberFormatException num_format)
+                {
+                    return Instant.parse(msg.getString(field_name));
+                }
+            }
+            catch (Exception wtf2)
+            {
+                throw new java.lang.NumberFormatException("Bad timestamp in "+field_name);
+            }
         }
     }
 
