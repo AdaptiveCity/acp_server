@@ -7,20 +7,18 @@ package acp_server.console;
 //
 // Author: Ian Lewis ijl20@cam.ac.uk
 //
-// Forms part of the 'tfc_server' next-generation Realtime Intelligent Traffic Analysis system
+// Forms part of the 'acp_server' next-generation Adaptive City platform
 //
-// Provides an HTTP server that serves the system administrator, to view eventbus events etc
-//
-// Listens for eventBus messages from "feed_vehicle"
+// Provides an HTTP server that serves the system administrator, to view status from eventbus status messages
 //
 // Message format on the 'system status' eventbus address
 //   { "module_name": "<e.g. feedhandler, msgfiler, or console>",
 //     "module_id": <whatever unique identifier source instance has>,
 //     "status": "UP" ,
 //     "status_msg": "UP",
-//     "status_amber_seconds": 35,// optional
-//     "status_red_seconds": 65,  // optional
-//     "ts": 1475138945           // optional in source, will be added by Console if missing
+//     "status_amber_seconds": 35,   // optional - verticle has 
+//     "status_red_seconds": 65,     // optional
+//     "acp_ts": "1475138945.132"    // optional in source, will be added by Console if missing
 //   }
 //   where the status_amber-seconds and status_red_seconds are optional
 // *************************************************************************************************
@@ -59,7 +57,7 @@ import acp_server.util.Constants;
 
 public class Console extends AbstractVerticle {
 
-    private final String VERSION = "1.09";
+    private final String VERSION = "1.10";
     
     public int LOG_LEVEL; // optional in config(), defaults to Constants.LOG_INFO
 
@@ -261,10 +259,19 @@ public class Console extends AbstractVerticle {
                             status_messages.remove(i);
                         }
                 }
-            // add UTC timestamp "ts" to system status message if it is not already in there from source
-            if (jo.getLong("ts",0L)==0L)
+            // add string UTC timestamp "acp_ts" to system status message if it is not already in there from source
+            if (jo.getString("acp_ts","42")=="42") // check if we have an acp_ts property, if not then set one
                 {
-                    jo.put("ts", System.currentTimeMillis() / 1000);
+                    Instant now = Instant.now();
+                    // The object sent i the messagebus will include "ts": utc_seconds
+                    long utc_milliseconds = now.toEpochMilli();
+
+                    // Built utc_ts as "<UTC Seconds>.<UTC Milliseconds>" for use in the filename
+                    String utc_milli_string = String.valueOf(utc_milliseconds);  // ~UTC time in milliseconds
+                    int utc_len = utc_milli_string.length();
+                    String utc_ts = utc_milli_string.substring(0,utc_len-3)+"."+utc_milli_string.substring(utc_len-3,utc_len);
+
+                    jo.put("acp_ts", utc_ts);
                 }
             // now add latest status as received to the JsonArray
             status_messages.add(jo);

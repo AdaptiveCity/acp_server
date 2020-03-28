@@ -40,8 +40,8 @@
                                      "value": "feed_mqtt"
                                    },
                   "flatten":    "request_data",
-                  "store_path": "/media/acp/{{feed_id}}/{{dev_id}}/{{ts|yyyy}}/{{ts|MM}}",
-                  "store_name": "{{dev_id}}_{{ts|yyyy}}-{{ts|MM}}-{{ts|dd}}.txt",
+                  "store_path": "/media/acp/{{feed_id}}/{{acp_id}}/{{acp_ts|yyyy}}/{{acp_ts|MM}}",
+                  "store_name": "{{acp_id}}_{{acp_ts|yyyy}}-{{acp_ts|MM}}-{{acp_ts|dd}}.txt",
                   "store_mode": "append"
                 }
 
