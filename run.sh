@@ -20,15 +20,7 @@ cd $SCRIPT_DIR
 # ################   CONSOLE                      #############################################
 # #############################################################################################
 
-nohup java -cp "$ACP_JAR:secrets:configs" io.vertx.core.Launcher run "console.A" -cluster >/dev/null 2>>/var/log/acp_prod/console.A.err & disown
-
-# #############################################################################################
-# ################   TTN MQTT FEED HANDLER        #############################################
-# #############################################################################################
-
-nohup java -cp "$ACP_JAR:secrets:configs" -Xmx100m -Xms10m -Xmn2m -Xss10m io.vertx.core.Launcher run "service:feedmqtt.ttn" -cluster >/dev/null 2>>/var/log/acp_prod/feedmqtt.ttn.err & disown
-
-nohup java -cp "$ACP_JAR:secrets:configs" -Xmx100m -Xms10m -Xmn2m -Xss10m io.vertx.core.Launcher run "service:msgfiler.ttn" -cluster >/dev/null 2>>/var/log/acp_prod/msgfiler.ttn.err & disown
+nohup java -cp "$ACP_JAR:secrets:configs" -Xmx100m -Xms10m -Xmn2m -Xss10m io.vertx.core.Launcher run "service:console.A" -cluster >/dev/null 2>>/var/log/acp_prod/console.A.err & disown
 
 # #############################################################################################
 # ################  LOCAL MQTT FEED HANDLER       #############################################
@@ -36,7 +28,11 @@ nohup java -cp "$ACP_JAR:secrets:configs" -Xmx100m -Xms10m -Xmn2m -Xss10m io.ver
 
 nohup java -cp "$ACP_JAR:secrets:configs" -Xmx100m -Xms10m -Xmn2m -Xss10m io.vertx.core.Launcher run "service:feedmqtt.local" -cluster >/dev/null 2>>/var/log/acp_prod/feedmqtt.local.err & disown
 
-nohup java -cp "$ACP_JAR:secrets:configs" -Xmx100m -Xms10m -Xmn2m -Xss10m io.vertx.core.Launcher run "service:msgfiler.local" -cluster >/dev/null 2>>/var/log/acp_prod/msgfiler.local.err & disown
+# #############################################################################################
+# ################  MQTT MSGFILER                #############################################
+# #############################################################################################
+
+nohup java -cp "$ACP_JAR:secrets:configs" -Xmx100m -Xms10m -Xmn2m -Xss10m io.vertx.core.Launcher run "service:msgfiler.mqtt" -cluster >/dev/null 2>>/var/log/acp_prod/msgfiler.mqtt.err & disown
 
 # #############################################################################################
 # ################   RTMONITOR                    #############################################

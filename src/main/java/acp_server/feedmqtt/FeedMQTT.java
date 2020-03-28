@@ -53,7 +53,7 @@ import acp_server.util.Constants;
 
 public class FeedMQTT extends AbstractVerticle {
 
-    private final String VERSION = "0.04";
+    private final String VERSION = "0.05";
     
     // from config()
     private String MODULE_NAME;       // config module.name - normally "feedscraper"
@@ -273,9 +273,12 @@ public class FeedMQTT extends AbstractVerticle {
         msg.put("module_name", MODULE_NAME);
         msg.put("module_id", MODULE_ID);
         msg.put("feed_id", config.getString("feed_id"));
-        msg.put("filename", filename);
+        msg.put("filename", filename); // filename and filepath are recorded so msgfiler can use these if required
         msg.put("filepath", filepath);
-        msg.put("acp_ts", utc_ts);
+        // set timestamps
+        msg.put("acp_ts", utc_ts); // acp_ts created as base property of eventbus packet, 
+                                   // a receiving msgfiler with 'flatten' will overwrite this with acp_ts from msg.
+        msg.put("acp_feed_ts", utc_ts); // acp_feed_ts remains the persistent record of the time the data arrived at platform.
 
         msg.put("msg_type", config.getString("msg_type"));
   
