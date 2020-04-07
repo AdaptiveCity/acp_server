@@ -21,7 +21,7 @@
       </dependency>
       <dependency>
         <groupId>io.vertx</groupId>
-        <artifactId>vertx-hazelcast</artifactId>
+        <artifactId>vertx-zookeeper</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -108,7 +108,23 @@
         </execution>
         </executions>
       </plugin>
-      </plugins>
+        <plugin>
+          <artifactId>exec-maven-plugin</artifactId>
+          <groupId>org.codehaus.mojo</groupId>
+          <executions>
+            <execution><!-- Run our version calculation script -->
+              <id>ACP Maven Script</id>
+              <phase>generate-sources</phase>
+              <goals>
+                <goal>exec</goal>
+              </goals>
+              <configuration>
+                <executable>${basedir}/scripts/mvn_script.sh</executable>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+    </plugins>
     </build>
 
 </project>
