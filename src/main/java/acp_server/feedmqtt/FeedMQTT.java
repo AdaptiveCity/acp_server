@@ -6,9 +6,9 @@ package acp_server.feedmqtt;
 // FeedMQTT.java
 // Author: Ian Lewis ijl20@cam.ac.uk
 //
-// Forms part of the 'tfc_server' Adaptive City Platform
+// Forms part of the 'acp_server' Adaptive City Platform
 //
-// Receives data from a remote MQTT server.
+// Receives data from a remote MQTT server, saves as file, publishes to eventbus
 //
 // FeedMQTT will WRITE the raw binary post data into:
 //   {{feed_config.data_monitor}}/<filename>
@@ -53,17 +53,17 @@ import acp_server.util.Constants;
 
 public class FeedMQTT extends AbstractVerticle {
 
-    private final String VERSION = "0.05";
-    
+    private final String VERSION = "0.06";
+
     // from config()
     private String MODULE_NAME;       // config module.name - normally "feedscraper"
     private String MODULE_ID;         // config module.id
     private String EB_SYSTEM_STATUS;  // config eb.system_status
     private String EB_MANAGER;        // config eb.manager
-    
+
     // maker configs:
     private JsonArray START_FEEDS; // config module_name.feeds parameters
-    
+
     public int LOG_LEVEL; // optional in config(), defaults to Constants.LOG_INFO
 
     private int HTTP_PORT;            // config feedmaker.http.port
@@ -79,7 +79,7 @@ public class FeedMQTT extends AbstractVerticle {
     private EventBus eb = null;
 
     private Log logger;
-    
+
     @Override
     public void start(Future<Void> fut) throws Exception {
 
@@ -95,7 +95,7 @@ public class FeedMQTT extends AbstractVerticle {
               }
 
         logger = new Log(LOG_LEVEL);
-        
+
         logger.log(Constants.LOG_INFO, MODULE_NAME+"."+MODULE_ID+": Version "+VERSION+" started");
 
         // create link to EventBus
@@ -122,7 +122,7 @@ public class FeedMQTT extends AbstractVerticle {
         // ********************************************************************
         // create monitor directory if necessary
         // ********************************************************************
-        FileSystem fs = vertx.fileSystem();          
+        FileSystem fs = vertx.fileSystem();
         String monitor_path = config.getString("data_monitor");
         if (!fs.existsBlocking(monitor_path))
         {
@@ -169,7 +169,7 @@ public class FeedMQTT extends AbstractVerticle {
     // ************************************************
     private void add_feed_handler(JsonObject config)
     {
-        //{ 
+        //{
         // "feed_id" :   "csn",
         // "feed_type":  "feed_mqtt",
         // "host":       "eu.thethings.network",
@@ -185,7 +185,7 @@ public class FeedMQTT extends AbstractVerticle {
         // "msg_type" :  "feed_mqtt",
         // "address" :   "tfc.feedmqtt.dev"
         //}
-        
+
         MqttFeed feed = new MqttFeed(config);
 
         if (feed.client == null)
@@ -197,7 +197,7 @@ public class FeedMQTT extends AbstractVerticle {
 
     }
 
-    // ***********************************************    
+    // ***********************************************
     // get current local time as "YYYY-MM-DD-hh-mm-ss"
     private String local_datetime_string()
     {
@@ -207,14 +207,14 @@ public class FeedMQTT extends AbstractVerticle {
 
   // *****************************************************************
   // process the received raw data
-  private void process_feed(MqttPublishMessage mqtt_msg, JsonObject config) throws Exception 
+  private void process_feed(MqttPublishMessage mqtt_msg, JsonObject config) throws Exception
   {
 
     // Extract the actual MQTT message data (as Buffer)
     Buffer buf = mqtt_msg.payload();
 
     LocalDateTime local_time = LocalDateTime.now();
-    
+
     String day = local_time.format(DateTimeFormatter.ofPattern("dd"));
     String month = local_time.format(DateTimeFormatter.ofPattern("MM"));
     String year = local_time.format(DateTimeFormatter.ofPattern("yyyy"));
@@ -234,10 +234,30 @@ public class FeedMQTT extends AbstractVerticle {
     //String utc_datetime = now.toString();
 
     // filename without the suffix
-    String filename = utc_ts+"_"+local_time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss"));
+    // See if we should add the sensor_id to the filename
+    // config property topic_id_field is the index of the field within the MQTT topic
+    // that is expected to hold the sensor id e.g. topic "csn/<sensor_id>/bah" has the
+    // sensor id in field 1.
+    // If the config does not contain "topic_id_field" then id is ignored.
+    final Integer id_field = config.getInteger("topic_id_field");
+    String id = "";
+    if (id_field != null)
+    {
+        String[] topic_fields = mqtt_msg.topicName().split("/");
+        if (id_field < topic_fields.length)
+        {
+            id = "_"+topic_fields[id_field];
+        }
+    }
+
+    // Build filename <utc timestamp>_<local time>[_sensor_id]
+    String filename = utc_ts;
+    filename +="_"+local_time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss"));
+    filename += id;
+
     // sub-dir structure to store the file
     String filepath = year+"/"+month+"/"+day;
-    
+
     // Write file to DATA_BIN
     //
     final String bin_path = config.getString("data_bin")+"/"+filepath;
@@ -253,7 +273,7 @@ public class FeedMQTT extends AbstractVerticle {
     // Finally, here is where we PARSE the incoming data and put it in the 'request_data' property
     // ********************************************************************************************
 
-    try {            
+    try {
 
         JsonObject msg = new JsonObject();
 
@@ -276,12 +296,12 @@ public class FeedMQTT extends AbstractVerticle {
         msg.put("filename", filename); // filename and filepath are recorded so msgfiler can use these if required
         msg.put("filepath", filepath);
         // set timestamps
-        msg.put("acp_ts", utc_ts); // acp_ts created as base property of eventbus packet, 
+        msg.put("acp_ts", utc_ts); // acp_ts created as base property of eventbus packet,
                                    // a receiving msgfiler with 'flatten' will overwrite this with acp_ts from msg.
         msg.put("acp_feed_ts", utc_ts); // acp_feed_ts remains the persistent record of the time the data arrived at platform.
 
         msg.put("msg_type", config.getString("msg_type"));
-  
+
         // debug print out the JsonObject message
         logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+": prepared EventBus msg:");
         logger.log(Constants.LOG_DEBUG, msg.toString());
@@ -289,7 +309,7 @@ public class FeedMQTT extends AbstractVerticle {
         String eventbus_address = config.getString("address");
 
         eb.publish(eventbus_address, msg);
-    
+
         logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
                    ": published latest MQTT feed data to "+eventbus_address);
     }
@@ -311,7 +331,7 @@ public class FeedMQTT extends AbstractVerticle {
         FileSystem fs = vertx.fileSystem();
         // if full directory path exists, then write file
         // otherwise create full path first
-    
+
         logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
                    ": Writing "+bin_path+"/"+filename + file_suffix);
         fs.exists(bin_path, result -> {
@@ -338,7 +358,7 @@ public class FeedMQTT extends AbstractVerticle {
                             });
                     }
         });
-    }        
+    }
 
     // ************************************************************************************
     // write_monitor_file()
@@ -385,8 +405,8 @@ public class FeedMQTT extends AbstractVerticle {
     // Write the 'buf' as a file 'filepath' (non-blocking)
     private void write_file(FileSystem fs, Buffer buf, String file_path)
     {
-        fs.writeFile(file_path, 
-                     buf, 
+        fs.writeFile(file_path,
+                     buf,
                      result -> {
             if (result.succeeded()) {
                 logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
@@ -405,7 +425,7 @@ public class FeedMQTT extends AbstractVerticle {
         //   module.id - unique module reference to be used by this verticle
         //   eb.system_status - String eventbus address for system status messages
         //   eb.manager - eventbus address for manager messages
-        
+
         MODULE_NAME = config().getString("module.name");
         if (MODULE_NAME == null)
             {
@@ -425,7 +445,7 @@ public class FeedMQTT extends AbstractVerticle {
             {
                 LOG_LEVEL = Constants.LOG_INFO;
             }
-        
+
         EB_SYSTEM_STATUS = config().getString("eb.system_status");
         if (EB_SYSTEM_STATUS == null)
             {
@@ -441,7 +461,7 @@ public class FeedMQTT extends AbstractVerticle {
             }
 
         START_FEEDS = config().getJsonArray(MODULE_NAME+".feeds");
-        
+
         return true;
     }
 
@@ -546,7 +566,7 @@ public class FeedMQTT extends AbstractVerticle {
             });
 
             // ***************************************************
-            // REGISTER MQTT CLOSE HANDLER 
+            // REGISTER MQTT CLOSE HANDLER
             // ***************************************************
             client.closeHandler( Void -> {
                 logger.log(Constants.LOG_WARN, MODULE_NAME+"."+MODULE_ID+"."+FEED_ID+
@@ -574,7 +594,7 @@ public class FeedMQTT extends AbstractVerticle {
             // ***************************************************
             // CONNECT TO MQTT SERVER
             // ***************************************************
-            // 
+            //
             //connect();
             //
             // Starting the watchdog
@@ -633,7 +653,7 @@ public class FeedMQTT extends AbstractVerticle {
             if (!watchdog_running)
             {
                 watchdog_running = true;
-                    
+
                 logger.log(Constants.LOG_INFO,MODULE_NAME+"."+MODULE_ID+"."+FEED_ID+": MQTT starting watchdog");
 
                 // send periodic "system_status" messages
@@ -665,4 +685,3 @@ public class FeedMQTT extends AbstractVerticle {
     } // end MqttFeed class
 
 } // end FeedMQTT class
-
