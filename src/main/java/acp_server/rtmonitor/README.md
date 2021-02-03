@@ -286,7 +286,7 @@ use of multiple subscriptions.
 
 ```
 { "msg_type": "rt_subscribe",
-  "request_id": "abc"
+  "request_id": "abc",
   "filters": [ { "test": "=", "key": "VehicleRef", "value": "CAMB-1018" } ]
 }
 ```
