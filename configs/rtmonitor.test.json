@@ -1,0 +1,32 @@
+{
+    "main":    "acp_server.rtmonitor.RTMonitor",
+    "options":
+        { "config":
+          {
+
+            "module.name":           "rtmonitor",
+            "module.id":             "test",
+
+            "eb.system_status":      "acp.system_status",
+            "eb.console_out":        "acp.console_out",
+            "eb.manager":            "acp.manager",
+
+            "rtmonitor.log_level":   1,
+
+            "rtmonitor.http.port":   8066,
+
+            "rtmonitor.key-DISABLED": "16-byte key",
+            "rtmonitor.key": "",
+
+            "rtmonitor.monitors": [ {
+                                      "http.uri":   "/rtmonitor/test/mqtt_acp",
+                                      "address":    "acp.feedmqtt.acp",
+                                      "records_array": "request_data",
+                                      "record_index": "acp_id"
+                                    }
+                                  ]
+
+
+          }
+        }
+}

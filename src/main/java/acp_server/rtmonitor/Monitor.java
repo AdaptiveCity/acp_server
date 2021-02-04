@@ -18,7 +18,7 @@ import acp_server.util.Log;
 
     // A Monitor is instantiated for each feed for which real-time updated state is required.
     // The procedure 'update_state' is called each time a message arrives on the EventBus address.
-    // On that asynchronous event the Monitor will update the internal state 
+    // On that asynchronous event the Monitor will update the internal state
     // and send data as appropriate to the subscribing websockets.
     //
     // Incoming EventBus messages may be considered single 'records', i.e. the entire message is the data
@@ -36,7 +36,7 @@ import acp_server.util.Log;
         public ArrayList<String> record_index;   // 'primary key' Json property (within data records)
         public ClientTable clients;              // Set of sockets subscribing to this data
 
-        public Hashtable<String, JsonObject> latest_records; // Holds latest message for each key 
+        public Hashtable<String, JsonObject> latest_records; // Holds latest message for each key
         public Hashtable<String, JsonObject> previous_records; // Holds previous message for each key
 
         public JsonObject latest_msg; // Most recent message received on the eventbus
@@ -84,8 +84,8 @@ import acp_server.util.Log;
         }
 
         // Add a client subscriber to this Monitor (on receipt of rt_connect message)
-        public String add_client(String UUID, 
-                                 SockJSSocket sock, 
+        public String add_client(String UUID,
+                                 SockJSSocket sock,
                                  JsonObject sock_msg,
                                  RTToken token)
         {
@@ -123,7 +123,7 @@ import acp_server.util.Log;
                 logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
                            ": Monitor "+address+" processed "+records.size()+" records, total "+latest_records.size());
             }
-        }        
+        }
 
         // update_state has picked out a data record from an incoming EventBus message,
         // so update the Monitor state based
@@ -132,8 +132,8 @@ import acp_server.util.Log;
         {
             String index_value = get_index(record);
 
-            // logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
-            //           ": update_record "+index_value);
+            logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
+                       ": update_record "+index_value);
 
             // if exists, shuffle latest_record to previous_record
             if (latest_records.get(index_value) != null)
@@ -147,14 +147,14 @@ import acp_server.util.Log;
         // update_state has updated the state, so now inform the websocket clients
         public void update_clients(JsonObject eventbus_msg)
         {
-            // Note this monitor contains the updated 'state' so we pass this monitor to the clients 
+            // Note this monitor contains the updated 'state' so we pass this monitor to the clients
             clients.update(eventbus_msg, this);
         }
 
         // Given an EventBus message, return the JsonArray containing the data records
         public JsonArray get_records(JsonObject msg)
         {
-            // The message contains multiple records, so follow records_array path 
+            // The message contains multiple records, so follow records_array path
             // of JsonObjects and assume final element on path is JsonArray
             // containing data records of interest. Start with original message
             JsonObject records_parent = msg.copy();
@@ -172,7 +172,7 @@ import acp_server.util.Log;
         // i.e. for a SiriVM data record this will be the value of "VehicleRef"
         private String get_index(JsonObject record)
         {
-            // The message contains multiple records, so follow records_array path 
+            // The message contains multiple records, so follow records_array path
             // of JsonObjects and assume final element on path is JsonArray
             // containing data records of interest. Start with original message
             JsonObject index_parent = record.copy();
@@ -203,7 +203,7 @@ import acp_server.util.Log;
                     {
                         key_is_record_index = true;
                         logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
-                           ": subscription key "+key+" matches record_index");                        
+                           ": subscription key "+key+" matches record_index");
                         break;
                     }
                 }
@@ -249,7 +249,7 @@ import acp_server.util.Log;
             return String.join(">",key_array).equals(key_string);
         }
 
-        // Given string "A>B>C" return ArrayList["A","B","C"] 
+        // Given string "A>B>C" return ArrayList["A","B","C"]
         private ArrayList<String> string_to_array(String s)
         {
             return new ArrayList<String>(Arrays.asList(s.split(">")));
@@ -282,4 +282,3 @@ import acp_server.util.Log;
         }
 
     } // end class Monitor
-        

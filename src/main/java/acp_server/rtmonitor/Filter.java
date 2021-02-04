@@ -18,20 +18,20 @@ import acp_server.util.Log;
         private String MODULE_NAME = "RTMonitor";
         private String MODULE_ID = "Monitor";
 
-        public JsonObject msg;
+        public JsonObject filter_obj;
 
-        Filter(JsonObject msg)
+        Filter(JsonObject filter_obj)
         {
             logger = new Log(RTMonitor.LOG_LEVEL);
 
-            this.msg = msg;
+            this.filter_obj = filter_obj;
         }
 
         // Test a JsonObject records against this Filter
         public boolean test(JsonObject record)
         {
             // test can default to "="
-            String test = msg.getString("test");
+            String test = filter_obj.getString("test");
             if (test == null)
             {
                 test = "=";
@@ -39,11 +39,15 @@ import acp_server.util.Log;
 
             switch (test)
             {
-                case "=": 
+                case "=":
                     return test_equals(record);
 
                 case "inside":
+                    // return true if current record is 'inside' coordinates given in filter
                     return test_inside(record);
+
+                case "in":
+                    return test_in(record);
 
                 default:
                     logger.log(Constants.LOG_WARN, MODULE_NAME+"."+MODULE_ID+
@@ -53,17 +57,20 @@ import acp_server.util.Log;
             return false;
         } // end Filter.test()
 
+        // ************************************************************
+        // e.g. { "test": "=", "key": "VehicleRef", "value": "SCNH-35224" }
+        // ************************************************************
         private boolean test_equals(JsonObject record)
         {
             // Given a filter say { "test": "=", "key": "VehicleRef", "value": "SCNH-35224" }
-            String key = msg.getString("key");
+            String key = filter_obj.getString("key");
             if (key == null)
             {
                 return false;
             }
 
             //DEBUG TODO allow numeric value
-            String value = msg.getString("value");
+            String value = filter_obj.getString("value");
             if (value == null)
             {
                 return false;
@@ -80,9 +87,11 @@ import acp_server.util.Log;
             return record_value.equals(value);
         } // end Filter.test_equals()
 
+        // ************************************************************
+        // Test for record inside polygon
+        // ************************************************************
         private boolean test_inside(JsonObject record)
         {
-            //DEBUG TODO implement this
             // Example filter:
             //   { "test": "inside",
             //     "lat_key": "Latitude",
@@ -96,11 +105,11 @@ import acp_server.util.Log;
             //   }
 
             //DEBUG TODO move this into the Subscription constructor for speedup
-            String lat_key = msg.getString("lat_key", "acp_lat");
+            String lat_key = filter_obj.getString("lat_key", "acp_lat");
 
-            String lng_key = msg.getString("lng_key", "acp_lng");
+            String lng_key = filter_obj.getString("lng_key", "acp_lng");
 
-            JsonArray points = msg.getJsonArray("points");
+            JsonArray points = filter_obj.getJsonArray("points");
 
             ArrayList<Position> polygon = new ArrayList<Position>();
 
@@ -111,7 +120,7 @@ import acp_server.util.Log;
 
             double lat;
             double lng;
-            
+
             try
             {
                 lat = get_double(record, lat_key);
@@ -130,6 +139,37 @@ import acp_server.util.Log;
 
         } // end Filter.test_inside()
 
+        // **************************************************************************
+        // Test if key value is in list of strings
+        // { "test": "in", "key": "acp_id", "values": [ "elsys-eye-044504" ... ] }
+        // **************************************************************************
+        private boolean test_in(JsonObject record)
+        {
+            String key = filter_obj.getString("key");
+            if (key == null)
+            {
+                return false;
+            }
+
+            // Try and pick out the property "key" from the data record
+            String record_key = record.getString(key);
+            if (record_key == null)
+            {
+                return false;
+            }
+
+            JsonArray values = filter_obj.getJsonArray("values");
+
+            for (int i=0; i<values.size(); i++)
+            {
+                if (record_key.equals(values.getString(i)))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         // Get a 'double' from the data record property 'key'
         // e.g. return the value of a "Latitude" property.
         // Note this could be a string or a number...
@@ -147,4 +187,3 @@ import acp_server.util.Log;
         }
 
     } // end class Filter
-
