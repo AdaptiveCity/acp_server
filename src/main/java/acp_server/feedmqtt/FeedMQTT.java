@@ -53,7 +53,7 @@ import acp_server.util.Constants;
 
 public class FeedMQTT extends AbstractVerticle {
 
-    private final String VERSION = "0.06";
+    private final String VERSION = "0.07";
 
     // from config()
     private String MODULE_NAME;       // config module.name - normally "feedscraper"
@@ -122,21 +122,29 @@ public class FeedMQTT extends AbstractVerticle {
         // ********************************************************************
         // create monitor directory if necessary
         // ********************************************************************
-        FileSystem fs = vertx.fileSystem();
-        String monitor_path = config.getString("data_monitor");
-        if (!fs.existsBlocking(monitor_path))
+        final Boolean write_data_monitor = config.getBoolean("write_data_monitor");
+
+        if (write_data_monitor == null || write_data_monitor)
         {
-          try {
-              fs.mkdirsBlocking(monitor_path);
-              logger.log(Constants.LOG_INFO, MODULE_NAME+"."+MODULE_ID+
-                                        ": start_client created monitor path "+monitor_path);
-          } catch (Exception e) {
-              logger.log(Constants.LOG_WARN, MODULE_NAME+"."+MODULE_ID+
-                                        ": start_client FAIL: error creating monitor path "+monitor_path);
-              return;
-          }
+            FileSystem fs = vertx.fileSystem();
+            String monitor_path = config.getString("data_monitor");
+            if (!fs.existsBlocking(monitor_path))
+            {
+              try {
+                  fs.mkdirsBlocking(monitor_path);
+                  logger.log(Constants.LOG_INFO, MODULE_NAME+"."+MODULE_ID+
+                                            ": start_client created monitor path "+monitor_path);
+              } catch (Exception e) {
+                  logger.log(Constants.LOG_WARN, MODULE_NAME+"."+MODULE_ID+
+                                            ": start_client FAIL: error creating monitor path "+monitor_path);
+                  return;
+              }
+            }
+              // monitor_path now exists
+        } else {
+            logger.log(Constants.LOG_INFO, MODULE_NAME+"."+MODULE_ID+
+                              ": start_client with write_data_monitor = false");
         }
-          // monitor_path now exists
 
         // ************************************************************************************
         // Create MQTT client subscriber as per feed config
@@ -258,16 +266,26 @@ public class FeedMQTT extends AbstractVerticle {
     // sub-dir structure to store the file
     String filepath = year+"/"+month+"/"+day;
 
-    // Write file to DATA_BIN
-    //
-    final String bin_path = config.getString("data_bin")+"/"+filepath;
     final String file_suffix = config.getString("file_suffix");
-    write_bin_file(buf, bin_path, filename, file_suffix);
 
-    // Write file to DATA_MONITOR
+    // Write file to DATA_BIN unless config "write_data_bin": false
     //
-    final String monitor_path = config.getString("data_monitor");
-    write_monitor_file(buf, monitor_path, filename, file_suffix);
+    final Boolean write_data_bin = config.getBoolean("write_data_bin");
+    if (write_data_bin == null || write_data_bin)
+    {
+        final String bin_path = config.getString("data_bin")+"/"+filepath;
+        write_bin_file(buf, bin_path, filename, file_suffix);
+    }
+
+    // Write file to DATA_MONITOR unless config "write_data_monitor": false
+    //
+
+    final Boolean write_data_monitor = config.getBoolean("write_data_monitor");
+    if (write_data_monitor == null || write_data_monitor)
+    {
+        final String monitor_path = config.getString("data_monitor");
+        write_monitor_file(buf, monitor_path, filename, file_suffix);
+    }
 
     // ********************************************************************************************
     // Finally, here is where we PARSE the incoming data and put it in the 'request_data' property
