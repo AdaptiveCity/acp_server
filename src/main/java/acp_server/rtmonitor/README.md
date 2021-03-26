@@ -293,6 +293,24 @@ use of multiple subscriptions.
 In the example above, records will only be returned if the record contains a
 property ```VehicleRef``` and the value of that property is ```CAMB-1018```.
 
+As an alternative to the boolean 'OR' relationship presented above, we can also do the following:  
+```
+{ "msg_type":"rt_subscribe",
+  "request_id":"abc",
+  "filters": [
+    { "key":"acp_id",
+      "test":"in",
+      "values":[
+        "elsys-co2-041bab",
+        "elsys-ems-0503e1",
+        "elsys-eye-048163"
+        ]
+     }
+   ]
+}
+```
+In the example above, we set the ```filters``` parameter so that the subscription only allows for the messages that have the ```acp_id``` property set ```in``` the ```values``` list to arrive.
+
 As another example of use, with SiriVM bus position data the records include
 ```OriginRef``` and ```DestinationRef``` properties with the identifiers of the
 starting and finishing bus stops for that particular vehicle journey. A
@@ -329,8 +347,7 @@ provided a list of points.
       }
   ]
 }
-```
-
+```  
 ### Requests
 
 Requests can be similar to subscriptions, but receive the data immediately *once*
