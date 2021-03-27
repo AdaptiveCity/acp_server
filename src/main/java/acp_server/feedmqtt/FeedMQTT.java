@@ -46,6 +46,7 @@ import java.time.*;
 import java.time.format.*;
 import java.util.*;
 import java.util.ArrayList;
+import java.lang.System;
 
 // other tfc_server classes
 import acp_server.util.Log;
@@ -53,7 +54,7 @@ import acp_server.util.Constants;
 
 public class FeedMQTT extends AbstractVerticle {
 
-    private final String VERSION = "0.071";
+    private final String VERSION = "0.072";
 
     // from config()
     private String MODULE_NAME;       // config module.name - normally "feedscraper"
@@ -77,6 +78,8 @@ public class FeedMQTT extends AbstractVerticle {
     // global vars
     private HashMap<String,MqttFeed> mqtt_feeds; // store an MqttClient per feed_id
     private EventBus eb = null;
+    private FileSystem fs;
+    private long monitor_create_ns; // nanoTime() timestamp when monitor file was last created.
 
     private Log logger;
 
@@ -100,6 +103,10 @@ public class FeedMQTT extends AbstractVerticle {
 
         // create link to EventBus
         eb = vertx.eventBus();
+
+        // interface to filesystem
+        fs = vertx.fileSystem();
+        monitor_create_ns = 0; // initialize monitor file write timestamp
 
         // send periodic "system_status" messages
         vertx.setPeriodic(SYSTEM_STATUS_PERIOD, id -> { send_status();  });
@@ -248,20 +255,21 @@ public class FeedMQTT extends AbstractVerticle {
     // sensor id in field 1.
     // If the config does not contain "topic_id_field" then id is ignored.
     final Integer id_field = config.getInteger("topic_id_field");
-    String id = "";
+    String topic_id = null;
     if (id_field != null)
     {
         String[] topic_fields = mqtt_msg.topicName().split("/");
         if (id_field < topic_fields.length)
         {
-            id = "_"+topic_fields[id_field];
+            topic_id = topic_fields[id_field];
         }
     }
 
     // Build filename <utc timestamp>_<local time>[_sensor_id]
     String filename = utc_ts;
     filename +="_"+local_time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss"));
-    filename += id;
+    if (topic_id != null)
+    filename += "_"+topic_id;
 
     // sub-dir structure to store the file
     String filepath = year+"/"+month+"/"+day;
@@ -279,12 +287,12 @@ public class FeedMQTT extends AbstractVerticle {
 
     // Write file to DATA_MONITOR unless config "write_data_monitor": false
     //
-
     final Boolean write_data_monitor = config.getBoolean("write_data_monitor");
     if (write_data_monitor == null || write_data_monitor)
     {
         final String monitor_path = config.getString("data_monitor");
-        write_monitor_file(buf, monitor_path, filename, file_suffix);
+        //write_monitor_file(buf, monitor_path, filename, file_suffix);
+        create_monitor_file(monitor_path + "/" + MODULE_NAME + "." + MODULE_ID);
     }
 
     // ********************************************************************************************
@@ -298,7 +306,13 @@ public class FeedMQTT extends AbstractVerticle {
         // Parse the received data into a suitable EventBus JsonObject message
 
         // The actual MQTT data will be the single element of the eventbus message "request_data" property
-        JsonObject mqtt_data = new JsonObject(buf);
+        JsonObject mqtt_data;
+        try {
+            mqtt_data = new JsonObject(buf);
+        }
+        catch (Exception e) {
+            mqtt_data = new JsonObject("{ \"error\": \"MQTT message was not JSON\" }");
+        }
 
         mqtt_data.put("mqtt_topic", mqtt_msg.topicName());
 
@@ -308,6 +322,11 @@ public class FeedMQTT extends AbstractVerticle {
 
         msg.put("request_data", request_data);
 
+        // Add acp_id property from topic if available
+
+        if (topic_id != null) {
+            msg.put("acp_id", topic_id);
+        }
         msg.put("module_name", MODULE_NAME);
         msg.put("module_id", MODULE_ID);
         msg.put("feed_id", config.getString("feed_id"));
@@ -346,7 +365,6 @@ public class FeedMQTT extends AbstractVerticle {
     //
     private void write_bin_file(Buffer buf, String bin_path, String filename, String file_suffix)
     {
-        FileSystem fs = vertx.fileSystem();
         // if full directory path exists, then write file
         // otherwise create full path first
 
@@ -378,6 +396,33 @@ public class FeedMQTT extends AbstractVerticle {
         });
     }
 
+
+    // ************************************************************************************
+    // Change the modified date of selected file
+    //
+    private void create_monitor_file(String filepath)
+    {
+        long now_ns = System.nanoTime(); // timestamp in nanoseconds
+        // Only (re)create the data_monitor file if > 2 seconds has passed since last time.
+        // This stops this 'watchdog' filesystem change from blocking the system on message bursts.
+        if (now_ns - monitor_create_ns > 2000000000) {
+            // This has been measured at 1ms
+            try {
+                fs.deleteBlocking(filepath);
+            } catch (Exception e) {
+                // This could be the first time the file is being created.
+                // In any case we don't want this failing to kill the general message processing.
+            }
+            try {
+                fs.createFileBlocking(filepath);
+            } catch (Exception e) {
+                logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
+                           ": create data_monitor file error");
+            }
+            monitor_create_ns = now_ns; // reset period to start from 'now'.
+        }
+    }
+
     // ************************************************************************************
     // write_monitor_file()
     //
@@ -387,8 +432,6 @@ public class FeedMQTT extends AbstractVerticle {
     //
     private void write_monitor_file(Buffer buf, String monitor_path, String filename, String file_suffix)
     {
-        FileSystem fs = vertx.fileSystem();
-
         logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
                ": Writing "+monitor_path+"/"+filename+ file_suffix);
         fs.readDir(monitor_path, ".*\\"+file_suffix, monitor_result -> {
@@ -575,7 +618,7 @@ public class FeedMQTT extends AbstractVerticle {
                            ": Setting max_message_size to default "+MAX_MESSAGE_SIZE );
             }
             client_options.setMaxMessageSize(MAX_MESSAGE_SIZE);
-            
+
             // Initialize and connect the MQTT client
             init(client_options);
         }
