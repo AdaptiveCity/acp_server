@@ -16,7 +16,7 @@ package acp_server.console;
 //     "module_id": <whatever unique identifier source instance has>,
 //     "status": "UP" ,
 //     "status_msg": "UP",
-//     "status_amber_seconds": 35,   // optional - verticle has 
+//     "status_amber_seconds": 35,   // optional - verticle has
 //     "status_red_seconds": 65,     // optional
 //     "acp_ts": "1475138945.132"    // optional in source, will be added by Console if missing
 //   }
@@ -57,8 +57,8 @@ import acp_server.util.Constants;
 
 public class Console extends AbstractVerticle {
 
-    private final String VERSION = "1.10";
-    
+    private final String VERSION = "1.11";
+
     public int LOG_LEVEL; // optional in config(), defaults to Constants.LOG_INFO
 
     private Integer HTTP_PORT; // from config()
@@ -79,9 +79,9 @@ public class Console extends AbstractVerticle {
 
     // declare object to hold latest status message from each active module
     private StatusCache status_cache;
-    
+
   @Override
-  public void start(Future<Void> fut) throws Exception {
+  public void start() throws Exception {
 
     if (!get_config())
           {
@@ -91,14 +91,14 @@ public class Console extends AbstractVerticle {
           }
 
     logger = new Log(LOG_LEVEL);
-    
+
     logger.log(Constants.LOG_INFO, MODULE_NAME+"."+MODULE_ID+": Version "+VERSION+" started on " +
                        EB_SYSTEM_STATUS+", port "+HTTP_PORT);
 
     BASE_URI = MODULE_NAME;
-    
+
     eb = vertx.eventBus();
-    
+
     HttpServer http_server = vertx.createHttpServer();
 
     Router router = Router.router(vertx);
@@ -115,7 +115,7 @@ public class Console extends AbstractVerticle {
                 // will do nothing here if ctx.request.absoluteURI() fails for current request
             }
         });
-    
+
     // ************************************
     // create listener to system status eventbus address and
     // handler for GET from /console/status
@@ -153,13 +153,13 @@ public class Console extends AbstractVerticle {
       router.route(HttpMethod.GET,"/*").handler(ctx -> {
               logger.log(Constants.LOG_DEBUG, "Console GET request not matched for " + ctx.request().absoluteURI());
         });
-    
+
     // connect router to http_server
       http_server.requestHandler(router).listen(HTTP_PORT);
 
       // send system status message from this module (i.e. to itself) immediately on startup, then periodically
       send_status();
-      
+
     // send periodic "system_status" messages
       vertx.setPeriodic(SYSTEM_STATUS_PERIOD, id -> { send_status();  });
 
@@ -177,7 +177,7 @@ public class Console extends AbstractVerticle {
                    "\"status_red_seconds\": "+String.valueOf( SYSTEM_STATUS_RED_SECONDS ) +
                  "}" );
     }
-    
+
     // Load initialization global constants defining this module from config()
     private boolean get_config()
     {
@@ -193,7 +193,7 @@ public class Console extends AbstractVerticle {
                 System.err.println("Console: no module.name in config()");
                 return false;
             }
-        
+
         MODULE_ID = config().getString("module.id"); // A, B, ...
         if (MODULE_ID==null)
             {
@@ -207,7 +207,7 @@ public class Console extends AbstractVerticle {
             {
                 LOG_LEVEL = Constants.LOG_INFO;
             }
-        
+
         // common system status reporting address, e.g. for UP messages
         // picked up by Console
         EB_SYSTEM_STATUS = config().getString("eb.system_status");
@@ -240,7 +240,7 @@ public class Console extends AbstractVerticle {
     // Class to hold latest status messages from each reporting module
     // ****************************************************************
     class StatusCache {
-        
+
         JsonArray status_messages;
 
         StatusCache() {

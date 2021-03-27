@@ -53,7 +53,7 @@ import acp_server.util.Constants;
 
 public class FeedMQTT extends AbstractVerticle {
 
-    private final String VERSION = "0.07";
+    private final String VERSION = "0.071";
 
     // from config()
     private String MODULE_NAME;       // config module.name - normally "feedscraper"
@@ -81,7 +81,7 @@ public class FeedMQTT extends AbstractVerticle {
     private Log logger;
 
     @Override
-    public void start(Future<Void> fut) throws Exception {
+    public void start() throws Exception {
 
         // create holder for MqttClients, indexed on feed_id
         mqtt_feeds = new HashMap<String,MqttFeed>();
@@ -495,6 +495,7 @@ public class FeedMQTT extends AbstractVerticle {
         Integer PORT;
         String HOST;
         String TOPIC;
+        Integer MAX_MESSAGE_SIZE;
 
         MqttClient client = null; // MqttFeed object will be null if config bad
 
@@ -566,6 +567,15 @@ public class FeedMQTT extends AbstractVerticle {
                 return;
             }
 
+            MAX_MESSAGE_SIZE = config.getInteger("max_message_size");
+            if (MAX_MESSAGE_SIZE == null)
+            {
+                MAX_MESSAGE_SIZE = 14000;
+                logger.log(Constants.LOG_INFO, MODULE_NAME+"."+MODULE_ID+"."+FEED_ID+
+                           ": Setting max_message_size to default "+MAX_MESSAGE_SIZE );
+            }
+            client_options.setMaxMessageSize(MAX_MESSAGE_SIZE);
+            
             // Initialize and connect the MQTT client
             init(client_options);
         }
@@ -580,7 +590,8 @@ public class FeedMQTT extends AbstractVerticle {
             // catch exceptions buried in netty
             client.exceptionHandler( e -> {
                 logger.log(Constants.LOG_WARN, MODULE_NAME+"."+MODULE_ID+"."+FEED_ID+
-                           ": MQTT exception" );
+                           ": MQTT exception\n");
+                e.printStackTrace();
             });
 
             // ***************************************************
@@ -621,7 +632,8 @@ public class FeedMQTT extends AbstractVerticle {
             start_watchdog(SYSTEM_WATCHDOG_PERIOD); // if watchdog already running, this will do nothing
 
 
-            logger.log(Constants.LOG_INFO, MODULE_NAME+"."+MODULE_ID+"."+FEED_ID+": MQTT handler started");
+            logger.log(Constants.LOG_INFO, MODULE_NAME+"."+MODULE_ID+"."+FEED_ID+
+                    ": MQTT handler started max_message_size="+client_options.getMaxMessageSize());
         }
 
         // ***************************************************

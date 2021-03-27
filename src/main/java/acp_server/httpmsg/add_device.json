@@ -1,6 +1,0 @@
-{
-    "method": "add_device",
-    "params": { "dev_eui": "0018b2000000113e",
-                "app_eui": "0018b2000000abcd"
-                }
-}

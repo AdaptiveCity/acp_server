@@ -4,15 +4,16 @@
     <groupId>acp_server</groupId>
     <artifactId>acp_server</artifactId>
     <packaging>jar</packaging>
-    <version>3.8.5</version>
+    <version>4.0.3</version>
     <name>acp_server</name>
     <url>http://maven.apache.org</url>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <launcher.class>io.vertx.core.Launcher</launcher.class>
     </properties>
-  
+
     <dependencies>
       <dependency>
         <groupId>io.vertx</groupId>

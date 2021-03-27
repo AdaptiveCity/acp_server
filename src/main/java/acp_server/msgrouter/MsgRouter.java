@@ -43,34 +43,34 @@ import acp_server.util.Log;
 
 public class MsgRouter extends AbstractVerticle {
 
-    private final String VERSION = "0.20";
-    
+    private final String VERSION = "0.21";
+
     // from config()
     public int LOG_LEVEL;             // optional in config(), defaults to Constants.LOG_INFO
     private String MODULE_NAME;       // config module.name - normally "msgrouter"
     private String MODULE_ID;         // config module.id - unique for this verticle
     private String EB_SYSTEM_STATUS;  // config eb.system_status
     private String EB_MANAGER;        // config eb.manager
-    
+
     private final int SYSTEM_STATUS_PERIOD = 10000; // publish status heartbeat every 10 s
     private final int SYSTEM_STATUS_AMBER_SECONDS = 25;
     private final int SYSTEM_STATUS_RED_SECONDS = 35;
 
     private EventBus eb = null;
     private Log logger;
-        
+
     private ArrayList<JsonObject> START_ROUTERS; // config msgrouters.routers parameters
 
     // global vars
     private HashMap<String,WebClient> web_clients; // used to store a WebClient for each feed_id
 
     private Destinations destinations; // stores destination_type->destination_id -> http POST mapping
-    
+
     private Sensors sensors; // stores sensor_type-> sensor_id -> destination_type/id mapping
 
     @Override
-    public void start(Future<Void> fut) throws Exception {
-      
+    public void start() throws Exception {
+
         // load initialization values from config()
         if (!get_config())
             {
@@ -80,7 +80,7 @@ public class MsgRouter extends AbstractVerticle {
             }
 
         logger = new Log(LOG_LEVEL);
-    
+
         logger.log(Constants.LOG_INFO, MODULE_NAME+"."+MODULE_ID+": Version "+VERSION+" started with log_level "+LOG_LEVEL);
 
         eb = vertx.eventBus();
@@ -127,7 +127,7 @@ public class MsgRouter extends AbstractVerticle {
 
         // **********************************************************************************
         // send system status message from this module (i.e. to itself) immediately on startup, then periodically
-        send_status();     
+        send_status();
         // send periodic "system_status" messages
         vertx.setPeriodic(SYSTEM_STATUS_PERIOD, id -> { send_status();  });
 
@@ -140,7 +140,7 @@ public class MsgRouter extends AbstractVerticle {
         vertx.executeBlocking(promise -> {
                     load_data_sql(promise);
                 },
-                res -> { 
+                res -> {
                     if (res.succeeded())
                     {
                         logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
@@ -173,7 +173,7 @@ public class MsgRouter extends AbstractVerticle {
               .put("user", db_user)
               .put("password", config().getString(MODULE_NAME+".db.password"))
               .put("driver_class", "org.postgresql.Driver");
-        
+
         //SQLClient sql_client = PostgreSQLClient.createShared(vertx, sql_client_config);
         JDBCClient jdbc_client = JDBCClient.createShared(vertx, sql_client_config);
 
@@ -181,13 +181,13 @@ public class MsgRouter extends AbstractVerticle {
                    ": load_data jdbc_client created for user "+db_user+" connecting to "+sql_client_config.getString("url"));
 
         jdbc_client.getConnection(res -> {
-            if (res.failed()) 
+            if (res.failed())
             {
                 logger.log(Constants.LOG_WARN, MODULE_NAME+"."+MODULE_ID+
                             ": load_data getConnection failed.");
                 promise.fail(res.cause());
             }
-            else 
+            else
             {
                 logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
                            ": load_data getConnection succeeded.");
@@ -196,7 +196,7 @@ public class MsgRouter extends AbstractVerticle {
 
                 sql_connection.query( "SELECT info FROM csn_destination",
                      rd -> {
-                              if (rd.failed()) 
+                              if (rd.failed())
                               {
                                   logger.log(Constants.LOG_WARN, MODULE_NAME+"."+MODULE_ID+
                                                ": Failed query SELECT info FROM csn_destination");
@@ -221,7 +221,7 @@ public class MsgRouter extends AbstractVerticle {
 
                               sql_connection.query( "SELECT info FROM csn_sensor",
                                                     rs -> {
-                                                        if (rs.failed()) 
+                                                        if (rs.failed())
                                                             {
                                                                 logger.log(Constants.LOG_WARN, MODULE_NAME+"."+MODULE_ID+
                                                                             ": Failed query SELECT info FROM csn_sensor");
@@ -301,7 +301,7 @@ public class MsgRouter extends AbstractVerticle {
                        ": skipping manager message ('method' property missing) on "+EB_MANAGER);
             return;
         }
-        
+
         switch (method)
         {
             case Constants.METHOD_ADD_SENSOR:
@@ -360,17 +360,17 @@ public class MsgRouter extends AbstractVerticle {
             case "print_destinations":
                 destinations.print();
                 break;
-            
+
             //debug
             case "print_sensors":
                 sensors.print();
                 break;
-            
+
             //debug
             case "load_data":
                 load_data();
                 break;
-            
+
             default:
                 logger.log(Constants.LOG_WARN, MODULE_NAME+"."+MODULE_ID+
                            ": received unrecognized 'method' in manager message on "+EB_MANAGER+": "+method);
@@ -391,7 +391,7 @@ public class MsgRouter extends AbstractVerticle {
                    "\"status_red_seconds\": "+String.valueOf( SYSTEM_STATUS_RED_SECONDS ) +
                  "}" );
     }
-    
+
     // ************************************************************
     // start_router()
     // start a Router by registering a consumer to the given address
@@ -403,22 +403,22 @@ public class MsgRouter extends AbstractVerticle {
         // which is the EventBus address it will listen to for messages to be forwarded.
         //
         // Note: a router config() (in msgrouter.routers) MAY contain a filter, such as
-        //        { 
+        //        {
         //            "source_address": "tfc.everynet_feed.test",
-        //            "source_filter": { 
+        //            "source_filter": {
         //                                 "field": "dev_eui",
         //                                 "compare": "=",
         //                                 "value": "0018b2000000113e"
         //                             },
         //            "destination_id":    "test",
-        //            "destination_type":  "everynet_jsonrpc",              
+        //            "destination_type":  "everynet_jsonrpc",
         //            "url" :  "http://localhost:8080/everynet_feed/test/adeunis_test2",
         //            "http_token": "test-msgrouter-post"
         //            "http_token_header": "x-api-key"    // defaults to "X-Auth-Token"
         //        },
-        //        { 
+        //        {
         //            "source_address": "tfc.everynet_feed.test",
-        //            "source_filter": { 
+        //            "source_filter": {
         //                                 "field": "sensor_type",
         //                                 "compare": "=",
         //                                 "value": "lorawan"
@@ -438,7 +438,7 @@ public class MsgRouter extends AbstractVerticle {
         String router_filter_text;
         if (has_filter)
             {
-                //source_filter = new RouterFilter(filter_json);  
+                //source_filter = new RouterFilter(filter_json);
                 router_filter_text = " with " + filter_json.toString();
             }
         else
@@ -454,7 +454,7 @@ public class MsgRouter extends AbstractVerticle {
         eb.consumer(router_config.getString("source_address"), message -> {
             //System.out.println("MsgRouter."+MODULE_ID+": got message from " + router_config.source_address);
             JsonObject msg = new JsonObject(message.body().toString());
-            
+
             //**************************************************************************
             //**************************************************************************
             // Route the message onwards via POST to destination
@@ -467,10 +467,10 @@ public class MsgRouter extends AbstractVerticle {
                 if (has_destination)
                 {
                     String destination_type = router_config.getString("destination_type");
-                    String destination_id = router_config.getString("destination_id"); 
+                    String destination_id = router_config.getString("destination_id");
                     logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
                                ": sending message to "+destination_type+"/"+destination_id);
-                    try 
+                    try
                     {
                         switch (destination_type)
                         {
@@ -491,7 +491,7 @@ public class MsgRouter extends AbstractVerticle {
                                            ": start_router unrecognized destination_type in message "+destination_type+"/"+destination_id);
                                 break;
                         }
-                                
+
                     }
                     catch (Exception e)
                     {
@@ -522,7 +522,7 @@ public class MsgRouter extends AbstractVerticle {
 
                     try
                     {
-                        // Here we pick out the 
+                        // Here we pick out the
                         destination_id = (sensors.get(msg_sensor_type,msg_sensor_id).info).getString("destination_id");
                         destination_type = (sensors.get(msg_sensor_type,msg_sensor_id).info).getString("destination_type");
                     }
@@ -557,7 +557,7 @@ public class MsgRouter extends AbstractVerticle {
             }
 
         });
-    
+
     } // end start_router
 
     //**************************************************************************
@@ -572,14 +572,14 @@ public class MsgRouter extends AbstractVerticle {
         //   module.id - unique module reference to be used by this verticle
         //   eb.system_status - String eventbus address for system status messages
         //   eb.manager - eventbus address for manager messages
-        
+
         MODULE_NAME = config().getString("module.name");
         if (MODULE_NAME == null)
         {
           Log.log_err("MsgRouter: module.name config() not set");
           return false;
         }
-        
+
         MODULE_ID = config().getString("module.id");
         if (MODULE_ID == null)
         {
@@ -592,7 +592,7 @@ public class MsgRouter extends AbstractVerticle {
             {
                 LOG_LEVEL = Constants.LOG_INFO;
             }
-        
+
         EB_SYSTEM_STATUS = config().getString("eb.system_status");
         if (EB_SYSTEM_STATUS == null)
         {
@@ -617,9 +617,9 @@ public class MsgRouter extends AbstractVerticle {
                 // add MODULE_NAME, MODULE_ID to every RouterConfig
                 config_json.put("module_name", MODULE_NAME);
                 config_json.put("module_id", MODULE_ID);
-                
+
                 //RouterConfig router_config = new RouterConfig(config_json);
-                
+
                 START_ROUTERS.add(config_json);
             }
 
@@ -674,7 +674,7 @@ public class MsgRouter extends AbstractVerticle {
     private class Destination {
         public String destination_type;  // Type of destination, e.g. "everynet_jsonrpc"
         public String destination_id;    // Id.  (destination_type,destination_id) is unique
-        public JsonObject info;          // Data packet defining Destination as received from eventbus add_destination 
+        public JsonObject info;          // Data packet defining Destination as received from eventbus add_destination
                                          // or PostgreSQL csn_destination table
 
         public WebClient web_client;   // We pre-define an WebClient for each Destination. Hopefully this is more efficient.
@@ -708,7 +708,7 @@ public class MsgRouter extends AbstractVerticle {
             {
                 throw new MsgRouterException("missing key on destination create");
             }
-            
+
             try
             {
                 // The user originally gave a URL, which could be malformed, if so this will throw an
@@ -724,13 +724,13 @@ public class MsgRouter extends AbstractVerticle {
             info = destination_info;
             // inject http_path into the destination "info"
             info.put("http_path", u.http_path);
-            
+
             WebClientOptions options = new WebClientOptions()
                                            .setSsl(u.http_ssl)
                                            .setTrustAll(true)
                                            .setDefaultPort(u.http_port)
                                            .setDefaultHost(u.http_host);
-                                           
+
             web_client = WebClient.create(vertx, options);
 
             //logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
@@ -741,24 +741,24 @@ public class MsgRouter extends AbstractVerticle {
         private UrlParts parse_url(String url_string) throws MalformedURLException
         {
             URL url = new URL(url_string);
-            
+
             UrlParts u = new UrlParts();
-            
+
             u.http_ssl = url.getProtocol().equals("https");
-            
+
             u.http_port = url.getPort();
             if (u.http_port < 0)
             {
                 u.http_port = u.http_ssl ? 443 : 80;
             }
-            
+
             u.http_host = url.getHost();
 
             u.http_path = url.getPath();
-            
+
             return u;
         }
-        
+
         public String toString()
         {
             String http_token = info.getString("http_token","");
@@ -766,7 +766,7 @@ public class MsgRouter extends AbstractVerticle {
             String http_token_header = info.getString("http_token_header","");
 
             UrlParts u = null;
-            
+
             try
             {
                 u = parse_url(info.getString("url"));
@@ -775,7 +775,7 @@ public class MsgRouter extends AbstractVerticle {
             {
                 return "bad URL";
             }
-            
+
             return destination_type+"/"+destination_id+" -> "+
                    "<"+http_token_header+": "+http_token+"> "+
                    (u.http_ssl ? "https://" : "http://")+
@@ -824,7 +824,7 @@ public class MsgRouter extends AbstractVerticle {
                         {
                             logger.log(Constants.LOG_WARN, MODULE_NAME+"."+MODULE_ID+
                                        ": Destination HttpClientRequest error for "+destination_id);
-                            
+
                             logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
                                        ": POST FAILED " + async_response.cause().getMessage() );
                         }
@@ -838,7 +838,7 @@ public class MsgRouter extends AbstractVerticle {
                 logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+": "+e.getMessage());
             }
         }
-            
+
     } // end class Destination
 
 
@@ -868,7 +868,7 @@ public class MsgRouter extends AbstractVerticle {
         {
             return destinations.get(destination_type).get(destination_id);
         }
-        
+
         // Add a destination (destination_id, http_token, url) to destinations, having received an 'add_destination' manager message
         public boolean put(JsonObject destination_info)
         {
@@ -892,7 +892,7 @@ public class MsgRouter extends AbstractVerticle {
 
             // If this destination is the first of its type, create a new HashMap for that type
             HashMap<String,Destination> type_destinations = destinations.get(destination.destination_type);
-            
+
             if (type_destinations == null)
             {
                 type_destinations = new HashMap<String, Destination>();
@@ -971,7 +971,7 @@ public class MsgRouter extends AbstractVerticle {
         {
             return sensors.get(sensor_type.toLowerCase()).get(sensor_id.toLowerCase());
         }
-        
+
         // Add a sensor to sensors, having received an 'add_sensor' manager message
         public void put(JsonObject sensor_info)
         {
@@ -1045,9 +1045,9 @@ public class MsgRouter extends AbstractVerticle {
                 }
             }
         }
-        
+
     } // end class Sensors
-    
+
     // Exception thrown if MsgRouter fails to add a sensor or a destination
     class MsgRouterException extends Exception
     {
@@ -1061,4 +1061,3 @@ public class MsgRouter extends AbstractVerticle {
         }
     }
 } // end class MsgRouter
-

@@ -55,7 +55,7 @@ import acp_server.util.RTCrypto;
 
 public class RTMonitor extends AbstractVerticle {
 
-    private final String VERSION = "1.31";
+    private final String VERSION = "1.32";
 
     // from config()
     public static int LOG_LEVEL;             // optional in config(), defaults to Constants.LOG_INFO
@@ -89,7 +89,7 @@ public class RTMonitor extends AbstractVerticle {
     private String RTMONITOR_KEY; // key from config() or secrets.sh, shared with tfc_web
 
     @Override
-    public void start(Future<Void> fut) throws Exception
+    public void start() throws Exception
     {
         // load initialization values from config()
         if (!get_config())

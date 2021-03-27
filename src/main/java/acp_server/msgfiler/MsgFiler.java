@@ -54,18 +54,18 @@ public class MsgFiler extends AbstractVerticle {
     private String MODULE_ID;         // config module.id - unique for this verticle
     private String EB_SYSTEM_STATUS;  // config eb.system_status
     private String EB_MANAGER;        // config eb.manager
-    
+
     private ArrayList<FilerConfig> START_FILERS; // config msgfilers.filers parameters
-    
+
     private final int SYSTEM_STATUS_PERIOD = 10000; // publish status heartbeat every 10 s
     private final int SYSTEM_STATUS_AMBER_SECONDS = 25;
     private final int SYSTEM_STATUS_RED_SECONDS = 35;
 
     private EventBus eb = null;
-    
+
   @Override
-  public void start(Future<Void> fut) throws Exception {
-      
+  public void start() throws Exception {
+
     // load initialization values from config()
     if (!get_config())
           {
@@ -73,7 +73,7 @@ public class MsgFiler extends AbstractVerticle {
               vertx.close();
               return;
           }
-      
+
     System.out.println("MsgFiler." + MODULE_ID + ": started");
 
     eb = vertx.eventBus();
@@ -86,7 +86,7 @@ public class MsgFiler extends AbstractVerticle {
 
     // send system status message from this module (i.e. to itself) immediately on startup, then periodically
     send_status();
-      
+
     // send periodic "system_status" messages
     vertx.setPeriodic(SYSTEM_STATUS_PERIOD, id -> { send_status();  });
 
@@ -104,7 +104,7 @@ public class MsgFiler extends AbstractVerticle {
                    "\"status_red_seconds\": "+String.valueOf( SYSTEM_STATUS_RED_SECONDS ) +
                  "}" );
     }
-    
+
     // ************************************************************
     // start_filer()
     // start a Filer by registering a consumer to the given address
@@ -123,24 +123,24 @@ public class MsgFiler extends AbstractVerticle {
         System.out.println("MsgFiler."+MODULE_ID+": starting filer "+filer_config.source_address+ filer_filter);
 
         FilerUtils filer_utils = new FilerUtils(vertx, filer_config);
-        
+
         // register to filer_config.source_address,
         // test messages with filer_config.source_filter
         // and call store_msg if current message passes filter
         eb.consumer(filer_config.source_address, message -> {
             //System.out.println("MsgFiler."+MODULE_ID+": got message from " + filer_config.source_address);
             JsonObject msg = new JsonObject(message.body().toString());
-            
+
             //System.out.println(msg.toString());
 
             // store this message if it matches the filter within the FilerConfig
             filer_utils.store_msg(msg);
 
         });
-    
+
     } // end start_filer
 
-    
+
     //**************************************************************************
     //**************************************************************************
     // Load initialization global constants defining this MsgFiler from config()
@@ -153,14 +153,14 @@ public class MsgFiler extends AbstractVerticle {
         //   module.id - unique module reference to be used by this verticle
         //   eb.system_status - String eventbus address for system status messages
         //   eb.manager - eventbus address for manager messages
-        
+
         MODULE_NAME = config().getString("module.name");
         if (MODULE_NAME == null)
         {
           Log.log_err("MsgFiler: module.name config() not set");
           return false;
         }
-        
+
         MODULE_ID = config().getString("module.id");
         if (MODULE_ID == null)
         {
@@ -192,9 +192,9 @@ public class MsgFiler extends AbstractVerticle {
                 // add MODULE_NAME, MODULE_ID to every FilerConfig
                 config_json.put("module_name", MODULE_NAME);
                 config_json.put("module_id", MODULE_ID);
-                
+
                 FilerConfig filer_config = new FilerConfig(config_json);
-                
+
                 START_FILERS.add(filer_config);
             }
 
