@@ -2,7 +2,7 @@
   "zookeeperHosts":"127.0.0.1",
   "sessionTimeout":20000,
   "connectTimeout":3000,
-  "rootPath":"acp_prod/tfc-app9",
+  "rootPath":"acp_prod/tfc-app6",
   "retry": {
     "initialSleepTime":100,
     "intervalTimes":10000,
