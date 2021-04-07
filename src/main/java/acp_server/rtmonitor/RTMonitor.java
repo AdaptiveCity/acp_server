@@ -250,8 +250,10 @@ public class RTMonitor extends AbstractVerticle {
 
         sock_handler.socketHandler( sock -> {
                 // received new socket CONNECTION
-                logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
-                        ": "+URI+" sock connection received with "+sock.writeHandlerID());
+                String SOCK_UUID = UUID.randomUUID().toString();
+
+                logger.log(Constants.LOG_INFO, MODULE_NAME+"."+MODULE_ID+
+                        ": "+URI+" sock connection received from "+sock.remoteAddress().hostAddress()+" as "+SOCK_UUID);
 
                 MultiMap headers = sock.headers();
 
@@ -260,7 +262,7 @@ public class RTMonitor extends AbstractVerticle {
                     for (String header_name : headers.names())
                     {
                         String header_values = String.join(";; ", headers.getAll(header_name));
-                        logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
+                        logger.log(Constants.LOG_INFO, MODULE_NAME+"."+MODULE_ID+
                             ": Header "+header_name+": "+header_values);
                     }
                 }
@@ -285,7 +287,7 @@ public class RTMonitor extends AbstractVerticle {
                     catch (io.vertx.core.json.DecodeException e)
                     {
                         logger.log(Constants.LOG_WARN, MODULE_NAME+"."+MODULE_ID+
-                                ": socketHandler received non-Json message "+sock.writeHandlerID());
+                                ": socketHandler received non-Json message "+SOCK_UUID);
                         send_nok(sock,"","Message failed to parse as JsonObject");
                         return;
                     }
@@ -313,12 +315,12 @@ public class RTMonitor extends AbstractVerticle {
                             }
 
                             // Add TOKEN PROTECTED client with this connection to the client table
-                            create_rt_client(URI, sock.writeHandlerID(), sock, sock_msg, rt_tokens.get(token_hash));
+                            create_rt_client(URI, SOCK_UUID, sock, sock_msg, rt_tokens.get(token_hash));
                         }
                         else
                         {
                             // Add client with NO TOKEN
-                            create_rt_client(URI, sock.writeHandlerID(), sock, sock_msg, null);
+                            create_rt_client(URI, SOCK_UUID, sock, sock_msg, null);
                         }
 
                         // Send rt_connect_ok in reply
@@ -328,26 +330,26 @@ public class RTMonitor extends AbstractVerticle {
                     else if (sock_msg.getString("msg_type","").equals(Constants.SOCKET_RT_SUBSCRIBE))
                     {
                        // Add this subscription to the client
-                       create_rt_subscription(URI, sock.writeHandlerID(), sock_msg);
+                       create_rt_subscription(URI, SOCK_UUID, sock_msg);
                     }
                     else if (sock_msg.getString("msg_type","").equals(Constants.SOCKET_RT_UNSUBSCRIBE))
                     {
                        // Remove this subscription from the client
-                       remove_rt_subscription(URI, sock.writeHandlerID(), sock_msg);
+                       remove_rt_subscription(URI, SOCK_UUID, sock_msg);
                     }
                     else if (sock_msg.getString("msg_type","").equals(Constants.SOCKET_RT_REQUEST))
                     {
                        // Client has requested a 'pull' of the data
-                       handle_rt_request(URI, sock.writeHandlerID(), sock_msg);
+                       handle_rt_request(URI, SOCK_UUID, sock_msg);
                     }
                 });
 
                 // Assign handler for socket CLOSED
                 sock.endHandler( (Void v) -> {
                         logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
-                                ": sock closed "+sock.writeHandlerID());
+                                ": sock closed "+SOCK_UUID);
                         // remove the client
-                        remove_rt_client(URI, sock.writeHandlerID());
+                        remove_rt_client(URI, SOCK_UUID);
                     });
           });
 
@@ -507,11 +509,10 @@ public class RTMonitor extends AbstractVerticle {
                                   JsonObject sock_msg,
                                   RTToken token)
     {
-        // create entry in client table for correct monitor
-        monitors.add_client(URI, UUID, sock, sock_msg, token);
-
         logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
                 ": adding client "+UUID+" with "+sock_msg.toString());
+        // create entry in client table for correct monitor
+        monitors.add_client(URI, UUID, sock, sock_msg, token);
     }
 
     // *****************************************************************************************

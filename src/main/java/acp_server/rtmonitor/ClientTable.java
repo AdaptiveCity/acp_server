@@ -34,11 +34,14 @@ import acp_server.util.Log;
         // 'sock_msg' is the JsonObject subscription message
         // 'token_hash' is the RTMonitor 'rt_tokens' dictionary key of the connection token
         // returns UUID of entry added
-        public String add(String UUID, 
-                          SockJSSocket sock, 
+        public String add(String UUID,
+                          SockJSSocket sock,
                           JsonObject sock_msg,
                           RTToken token)
         {
+            logger.log(Constants.LOG_INFO, MODULE_NAME+"."+MODULE_ID+
+                ": ClientTable.add "+UUID);
+
             if (sock == null)
             {
                 logger.log(Constants.LOG_WARN, MODULE_NAME+"."+MODULE_ID+
@@ -46,11 +49,24 @@ import acp_server.util.Log;
                 return null;
             }
 
+            logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
+                ": ClientTable.add 2 "+UUID);
+
+            logger.log(Constants.LOG_INFO, MODULE_NAME+"."+MODULE_ID+
+                ": ClientTable.add() UUID="+UUID+
+                ", sock.remoteAddress="+sock.remoteAddress().hostAddress()+
+                ", sock_msg="+sock_msg.toString() +
+                ", RTToken="+(token == null ? "null" : token.toHtml())
+            );
+
+            logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
+                ": ClientTable.add 3 "+UUID);
+
             // create new entry for sock_data
             Client client = new Client(UUID, sock, sock_msg, token);
 
             logger.log(Constants.LOG_DEBUG, MODULE_NAME+"."+MODULE_ID+
-                       ": ClientTable.add "+UUID);
+                       ": ClientTable.add 4 "+UUID);
             // push this entry onto the array
             client_table.put(UUID, client);
             return UUID;
@@ -100,7 +116,7 @@ import acp_server.util.Log;
             }
             client.handle_rt_request(sock_msg, m, key_is_record_index);
         }
-        
+
         public Client get(String UUID)
         {
             // retrieve data for current socket, if it exists
@@ -151,7 +167,7 @@ import acp_server.util.Log;
                        ": updating client "+UUID);
 
                 Client client = client_table.get(UUID);
-                
+
                 if (client != null)
                 {
                     client.update(eventbus_msg, m);
@@ -183,4 +199,3 @@ import acp_server.util.Log;
         }
 
     } // end class ClientTable
-
